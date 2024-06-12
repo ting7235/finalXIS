@@ -196,5 +196,98 @@ router.put('/messages/:id', (req, res) => {
   stmt.finalize();
 });
 
+
+
+router.get('/favorites/details/:userId', (req, res) => {
+  const userId = req.params.userId;
+
+  const query = `
+    SELECT dogs.* FROM favorites
+    JOIN dogs ON favorites.dogId = dogs.id
+    WHERE favorites.userId = ?
+  `;
+
+  db.all(query, [userId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+
+// 删除消息
+router.delete('/messages/:id', (req, res) => {
+  const messageId = req.params.id;
+  const stmt = db.prepare("DELETE FROM messages WHERE id = ?");
+  stmt.run(messageId, function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json({ message: "Message deleted successfully" });
+  });
+  stmt.finalize();
+});
+
+router.post('/favorites', (req, res) => {
+  const { userId, dogId } = req.body;
+
+  if (!userId || !dogId) {
+    return res.status(400).json({ error: 'userId and dogId are required' });
+  }
+
+  const stmt = db.prepare("INSERT INTO favorites (userId, dogId) VALUES (?, ?)");
+  stmt.run(userId, dogId, function (err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json({ id: this.lastID });
+  });
+});
+router.get('/user/messages/:userId', (req, res) => {
+  const userId = req.params.userId;
+
+  db.all("SELECT * FROM messages WHERE userId = ?", [userId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+
+router.get('/favorites/:userId', (req, res) => {
+  const userId = req.params.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  db.all("SELECT * FROM favorites WHERE userId = ?", [userId], (err, rows) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+router.delete('/favorites', (req, res) => {
+  const { userId, dogId } = req.body;
+
+  if (!userId || !dogId) {
+    return res.status(400).json({ error: 'userId and dogId are required' });
+  }
+
+  const stmt = db.prepare("DELETE FROM favorites WHERE userId = ? AND dogId = ?");
+  stmt.run(userId, dogId, function (err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json({ changes: this.changes });
+  });
+});
+
+
+
 module.exports = router;
 
