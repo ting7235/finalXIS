@@ -115,7 +115,7 @@ router.post('/dogs', upload.single('image'), (req, res) => {
   stmt.finalize();
 });
 
-// 更新狗狗信息
+
 router.put('/dogs/:id', upload.single('image'), (req, res) => {
   const dogId = req.params.id;
   const { name, breed, age, description } = req.body;
@@ -131,7 +131,7 @@ router.put('/dogs/:id', upload.single('image'), (req, res) => {
   stmt.finalize();
 });
 
-// 删除狗狗信息
+
 router.delete('/dogs/:id', (req, res) => {
   const dogId = req.params.id;
   const stmt = db.prepare("DELETE FROM dogs WHERE id = ?");
@@ -140,6 +140,58 @@ router.delete('/dogs/:id', (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     res.status(200).json({ message: "Dog deleted successfully" });
+  });
+  stmt.finalize();
+});
+
+
+router.post('/messages', (req, res) => {
+  const { userId, dogId, message } = req.body;
+  const stmt = db.prepare("INSERT INTO messages (userId, dogId, message, response) VALUES (?, ?, ?, ?)");
+  stmt.run(userId, dogId, message, null, function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json({ message: "Message sent successfully", messageId: this.lastID });
+  });
+  stmt.finalize();
+});
+
+
+router.get('/messages', (req, res) => {
+  db.all("SELECT * FROM messages", (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+
+router.get('/messages/:id', (req, res) => {
+  const messageId = req.params.id;
+  db.get("SELECT * FROM messages WHERE id = ?", [messageId], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (row) {
+      res.status(200).json(row);
+    } else {
+      res.status(404).json({ message: "Message not found" });
+    }
+  });
+});
+
+
+router.put('/messages/:id', (req, res) => {
+  const messageId = req.params.id;
+  const { response } = req.body;
+  const stmt = db.prepare("UPDATE messages SET response = ? WHERE id = ?");
+  stmt.run(response, messageId, function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(200).json({ message: "Response sent successfully" });
   });
   stmt.finalize();
 });
